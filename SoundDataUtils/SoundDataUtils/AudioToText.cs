@@ -39,6 +39,34 @@ namespace SoundDataUtils
             return listOfChunks;
 
         }
+        public static IEnumerable<string> Tob64Strings(this IWaveSource source, WaveFormat format, TimeSpan timeChunks)
+        {
+            var listOfChunks = string.Empty;
+            int ctr = 0;
+
+            byte[] buffer = new byte[format.BytesPerSecond / format.SampleRate];
+            int read;
+
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                var base64 = Convert.ToBase64String(buffer);
+                listOfChunks += base64;
+                if (read == buffer.Length)
+                    listOfChunks += ' ';
+                ctr++;
+                if (ctr >= format.SampleRate * timeChunks.TotalSeconds)
+                {
+                    ctr = 0;
+                    yield return listOfChunks;
+                    listOfChunks = string.Empty;
+                }
+
+                if (ctr % 1000 == 0)
+                    Console.WriteLine(Math.Round((source.Position / (double)source.Length) * 100));
+            }
+            yield return listOfChunks;
+
+        }
         public static void ToAudioAgain(string base64Chunks, string outputFile, WaveFormat wav)
         {
 
