@@ -84,8 +84,8 @@ namespace PlayGroundNET
 
             var wav = new WaveFormat(sampleRate, bitsPerSample, channels);
             var wavGood = new WaveFormat(44100, 16, 2);
-
-            foreach (var fileName in Directory.EnumerateFiles(initialFilesDir))
+            toTextFilesDir.EnsureDirEmpty();
+            Parallel.ForEach(Directory.EnumerateFiles(initialFilesDir), fileName =>
             {
                 //Player.Play(new DmoResampler(CodecFactory.Instance.GetCodec(fileName), wav));
                 //Player.Play(new DmoResampler(CodecFactory.Instance.GetCodec(fileName), wavGood));
@@ -97,10 +97,10 @@ namespace PlayGroundNET
                     var outPath = Path.Combine(toTextFilesDir,
                         Path.GetFileNameWithoutExtension(fileName) + $"_chunk_{ctr++}.txt");
                     File.WriteAllText(outPath, chunk);
-                    AudioToText.ToAudioAgain(chunk, Path.Combine(Path.GetDirectoryName(outPath), Path.GetFileNameWithoutExtension(outPath) + ".wav"), wav);
+                    ///*  AudioToText.ToAudioAgain(chunk, Path.Combine(Path.GetDirectoryName(outPath), */Path.GetFileNameWithoutExtension(outPath) + ".wav"), wav);
 
                 }
-            }
+            });
 
             //foreach (var fileName in Directory.EnumerateFiles(convertedFilesDir))
             //    File.WriteAllText(Path.Combine(toTextFilesDir.EnsureDirEmpty(), Path.GetFileNameWithoutExtension(fileName) + ".txt"), CodecFactory.Instance.GetCodec(fileName).Tob64String(wav));
