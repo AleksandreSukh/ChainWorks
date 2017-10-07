@@ -74,6 +74,17 @@ namespace PlayGroundNET
     {
         static void Main(string[] args)
         {
+            ReadAndPlay(args);
+        }
+
+
+
+        static void ReadAndPlay(string[] args)
+        {
+
+        }
+        static void Convert(string[] args)
+        {
             var initialFilesDir = @"G:\Data\Initial";
             var convertedFilesDir = @"G:\Data\Converted".CreateDirIfNotExists();
             var toTextFilesDir = @"G:\Data\ToTexts".CreateDirIfNotExists();
