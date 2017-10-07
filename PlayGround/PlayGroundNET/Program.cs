@@ -44,12 +44,23 @@ namespace PlayGroundNET
             var wavGood = new WaveFormat(44100, 16, 2);
             toTextFilesDir.EnsureDirEmpty();
             //Parallel.ForEach(Directory.EnumerateFiles(initialFilesDir), fileName =>
+            var chain = new SampleDeepChain(3);
             foreach (var fileName in Directory.EnumerateFiles(initialFilesDir))
             {
                 var rdr = new MediaFoundationDecoder(fileName);// new WaveFileReader(fileName);
                 //Player.Play(rdr);
                 var chunk = new DmoResampler(rdr, wav).ToShortArray(wav);
-                Player.Play(chunk.ToAudioAgain(wav));
+                chain.feed(chunk);
+
+                List<short[]> randomSounds = new List<short[]>();
+                for (int i = 0; i < 10000; i++)
+                {
+                    var randomSound = chain.generateSentence();
+
+                    randomSounds.Add(randomSound);
+                }
+
+                Player.Play(randomSounds.SelectMany(s => s).ToArray().ToAudioAgain(wav));
                 //{
                 //    var outPath = Path.Combine(toTextFilesDir,
                 //        Path.GetFileNameWithoutExtension(fileName) + $"_chunk_{0}.txt");

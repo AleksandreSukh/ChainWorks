@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using System.Xml;
 
-namespace TextToAudio
+namespace SoundDataUtils
 {
+    //TODO:make this class generic
     public class SampleDeepChain
     {
+        //private static readonly short[] stopSymbols = new[] { "!", ".", "?" };
+        private static readonly short[] stopSymbols = { 0 };
+        private static readonly short spaceSymbol = 0;
+        private static readonly short startSymbol = 0;
         private Dictionary<short, Chain> chains;
         private Chain head;
         private int depth;
@@ -19,9 +24,9 @@ namespace TextToAudio
         {
             if (depth < 3)
                 throw new ArgumentException("We currently only support Markov Chains 3 or deeper.  Sorry :(");
-            chains = new Dictionary<string, Chain>();
-            head = new Chain() { text = "[]" };
-            chains.Add("[]", head);
+            chains = new Dictionary<short, Chain>();
+            head = new Chain() { val = startSymbol };
+            chains.Add(startSymbol, head);
             this.depth = depth;
         }
 
@@ -29,24 +34,18 @@ namespace TextToAudio
         /// Feed in text that wil be used to create predictive text.
         /// </summary>
         /// <param name="s">The text that this Markov chain will use to generate new sentences</param>
-        public void feed(string s)
+        public void feed(short[] s)
         {
-            s = s.ToLower();
-            s = s.Replace("/", "").Replace("\\", "").Replace("[]", "").Replace(",", "");
-            s = s.Replace("\r\n\r\n", " ").Replace("\r", "").Replace("\n", " "); //The first line is a hack to fix two \r\n (usually a <p> on a website)
-            s = s.Replace(".", " .").Replace("!", " ! ").Replace("?", " ?");
+            List<short[]> sentences = getSentences(s);
+            short[] valuesToAdd;
 
-            string[] splitValues = s.Split(' ');
-            List<string[]> sentences = getSentences(splitValues);
-            string[] valuesToAdd;
-
-            foreach (string[] sentence in sentences)
+            foreach (var sentence in sentences)
             {
                 for (int start = 0; start < sentence.Length - 1; start++)
                 {
                     for (int end = 2; end < depth + 2 && end + start <= sentence.Length; end++)
                     {
-                        valuesToAdd = new string[end];
+                        valuesToAdd = new short[end];
                         for (int j = start; j < start + end; j++)
                             valuesToAdd[j - start] = sentence[j];
                         addWord(valuesToAdd);
@@ -70,15 +69,16 @@ namespace TextToAudio
             foreach (XmlNode xn in root.ChildNodes)
             {
                 string text = xn.Attributes["Text"].Value.ToString();
-                if (!chains.ContainsKey(text))
-                    chains.Add(text, new Chain() { text = text });
+                var val = Int16.Parse(text);
+                if (!chains.ContainsKey(val))
+                    chains.Add(val, new Chain() { val = val });
             }
 
             //Now add each next word (Trey:  I do not like this backtracking algorithm.  This could be made better.)
-            List<string> nextWords;
+            List<short> nextWords;
             foreach (XmlNode xn in root.ChildNodes)
             {
-                string topWord = xn.Attributes["Text"].Value.ToString();
+                var topWord = xn.Attributes["Text"].Value.ToString();
                 Queue<XmlNode> toProcess = new Queue<XmlNode>();
                 foreach (XmlNode n in xn.ChildNodes)
                     toProcess.Enqueue(n);
@@ -87,13 +87,13 @@ namespace TextToAudio
                 {
                     XmlNode currentNode = toProcess.Dequeue();
                     int currentCount = Convert.ToInt32(currentNode.Attributes["Count"].Value.ToString());
-                    nextWords = new List<string>();
-                    nextWords.Add(topWord);
+                    nextWords = new List<short>();
+                    nextWords.Add(Int16.Parse(topWord));
                     //nextWords.Add(currentNode.Attributes["Text"].Value.ToString());
                     XmlNode parentTrackingNode = currentNode;
                     while (parentTrackingNode.Attributes["Text"].Value.ToString() != topWord)
                     {
-                        nextWords.Insert(1, parentTrackingNode.Attributes["Text"].Value.ToString());
+                        nextWords.Insert(1, Int16.Parse(parentTrackingNode.Attributes["Text"].Value));
                         parentTrackingNode = parentTrackingNode.ParentNode;
                     }
                     addWord(nextWords.ToArray(), currentCount);
@@ -104,33 +104,33 @@ namespace TextToAudio
             }
         }
 
-        private List<string[]> getSentences(string[] words)
+        private List<short[]> getSentences(short[] words)
         {
-            List<string[]> sentences = new List<string[]>();
-            List<string> currentSentence = new List<string>();
-            currentSentence.Add("[]"); //start of sentence
+            List<short[]> sentences = new List<short[]>();
+            List<short> currentSentence = new List<short>();
+            currentSentence.Add(startSymbol); //start of sentence
             for (int i = 0; i < words.Length; i++)
             {
                 currentSentence.Add(words[i]);
-                if (words[i] == "!" || words[i] == "." || words[i] == "?")
+                if (stopSymbols.Contains(words[i]))
                 {
                     sentences.Add(currentSentence.ToArray());
-                    currentSentence = new List<string>();
-                    currentSentence.Add("[]");
+                    currentSentence = new List<short>();
+                    currentSentence.Add(startSymbol);
                 }
             }
             return sentences;
         }
 
-        private void addWord(string[] words, int count = 1)
+        private void addWord(short[] words, int count = 1)
         {
             //Note:  This only adds the last word in the array. The other words should already be added by this point
             List<Chain> chainsList = new List<Chain>();
-            string lastWord = words[words.Length - 1];
+            short lastWord = words[words.Length - 1];
             for (int i = 1; i < words.Length - 1; i++)
                 chainsList.Add(this.chains[words[i]]);
             if (!this.chains.ContainsKey(lastWord))
-                this.chains.Add(lastWord, new Chain() { text = lastWord });
+                this.chains.Add(lastWord, new Chain() { val = lastWord });
             chainsList.Add(this.chains[lastWord]);
             Chain firstChainInList = chains[words[0]];
             firstChainInList.addWords(chainsList.ToArray(), count);
@@ -149,30 +149,41 @@ namespace TextToAudio
         /// Generate a sentence based on the data passed into this Markov Chain.
         /// </summary>
         /// <returns></returns>
-        public string generateSentence()
+        public short[] generateSentence()
         {
-            StringBuilder sb = new StringBuilder();
-            string[] currentChains = new string[depth];
-            currentChains[0] = head.getNextWord().text;
+            var sb = new ArrayBuilder<short>();
+            short[] currentChains = new short[depth];
+            currentChains[0] = head.getNextWord().val;
             sb.Append(currentChains[0]);
-            string[] temp;
+            short[] temp;
             bool doneProcessing = false;
             for (int i = 1; i < depth; i++)
             {
                 //Generate the first row
-                temp = new string[i];
+                temp = new short[i];
                 for (int j = 0; j < i; j++)
                     temp[j] = currentChains[j];
-                currentChains[i] = head.getNextWord(temp).text;
-                if (currentChains[i] == "."
-                    || currentChains[i] == "?"
-                    || currentChains[i] == "!")
+                var nextToHead = head.getNextWord(temp);
+                if (nextToHead != null)
+                    currentChains[i] = nextToHead.val;
+                else
                 {
                     doneProcessing = true;
+                    break;
+                }
+                if (stopSymbols.Contains(currentChains[i]))
+                {
+#if !DEBUG
+                                  doneProcessing = true;
+      
+#endif
                     sb.Append(currentChains[i]);
                     break;
                 }
-                sb.Append(" ");
+#if !DEBUG
+
+                sb.Append(spaceSymbol);
+#endif
                 sb.Append(currentChains[i]);
             }
 
@@ -182,19 +193,25 @@ namespace TextToAudio
                 for (int j = 1; j < depth; j++)
                     currentChains[j - 1] = currentChains[j];
                 Chain newHead = chains[currentChains[0]];
-                temp = new string[depth - 2];
+                temp = new short[depth - 2];
                 for (int j = 1; j < depth - 1; j++)
                     temp[j - 1] = currentChains[j];
-
-                currentChains[depth - 1] = newHead.getNextWord(temp).text;
-                if (currentChains[depth - 1] == "." ||
-                    currentChains[depth - 1] == "?" ||
-                    currentChains[depth - 1] == "!")
+                var nextToNewHead = newHead.getNextWord(temp);
+                if (nextToNewHead != null)
+                    currentChains[depth - 1] = nextToNewHead.val;
+                else
+                {
+                    break;
+                }
+                if (stopSymbols.Contains(currentChains[depth - 1]))
                 {
                     sb.Append(currentChains[depth - 1]);
                     break;
                 }
-                sb.Append(" ");
+#if !DEBUG
+
+                sb.Append(spaceSymbol);
+#endif
                 sb.Append(currentChains[depth - 1]);
 
                 breakCounter++;
@@ -202,57 +219,54 @@ namespace TextToAudio
                     break;
             }
 
-
-            sb[0] = char.ToUpper(sb[0]);
-            return sb.ToString();
+            return sb.ToArray();
         }
 
-        public List<string> getNextLikelyWord(string previousText)
+        private object Default = 0;
+
+        public List<short> getNextLikelyWord(short[] previousText)
         {
             //TODO:  Do a code review of this function, it was written pretty hastily
             //TODO:  Include results that use a chain of less length that the depth.  This will allow for more results when the depth is large
-            List<string> results = new List<string>();
-            previousText = previousText.ToLower();
-            previousText = previousText.Replace("/", "").Replace("\\", "").Replace("[]", "").Replace(",", "");
-            previousText = previousText.Replace("\r\n\r\n", " ").Replace("\r", "").Replace("\n", " "); //The first line is a hack to fix two \r\n (usually a <p> on a website)
+            List<short> results = new List<short>();
 
-            if (previousText == string.Empty)
+            if (previousText.Length == 0)
             {
                 //Assume start of sentence
 
-                List<ChainProbability> nextChains = head.getPossibleNextWords(new string[0]);
+                List<ChainProbability> nextChains = head.getPossibleNextWords(new short[0]);
                 nextChains.Sort((x, y) =>
                 {
                     return x.count - y.count;
                 });
                 foreach (ChainProbability cp in nextChains)
-                    results.Add(cp.chain.text);
+                    results.Add(cp.chain.val);
             }
             else
             {
-                string[] initialSplit = previousText.Split(' ');
+                short[] initialSplit = previousText;
 
-                string[] previousWords;
+                short[] previousWords;
                 if (initialSplit.Length > depth)
                 {
-                    previousWords = new string[depth];
+                    previousWords = new short[depth];
                     for (int i = 0; i < depth; i++)
                         previousWords[i] = initialSplit[initialSplit.Length - depth + i];
                 }
                 else
                 {
-                    previousWords = new string[initialSplit.Length];
+                    previousWords = new short[initialSplit.Length];
                     for (int i = 0; i < initialSplit.Length; i++)
                         previousWords[i] = initialSplit[i];
                 }
 
                 if (!chains.ContainsKey(previousWords[0]))
-                    return new List<string>();
+                    return new List<short>();
 
                 try
                 {
                     Chain headerChain = chains[previousWords[0]];
-                    string[] sadPreviousWords = new string[previousWords.Length - 1]; //They are sad because I'm allocating extra memory for a slightly different array and there's probably a better way but I'm lazy :(
+                    var sadPreviousWords = new short[previousWords.Length - 1]; //They are sad because I'm allocating extra memory for a slightly different array and there's probably a better way but I'm lazy :(
                     for (int i = 1; i < previousWords.Length; i++)
                         sadPreviousWords[i - 1] = previousWords[i];
                     List<ChainProbability> nextChains = headerChain.getPossibleNextWords(sadPreviousWords);
@@ -261,11 +275,11 @@ namespace TextToAudio
                         return x.count - y.count;
                     });
                     foreach (ChainProbability cp in nextChains)
-                        results.Add(cp.chain.text);
+                        results.Add(cp.chain.val);
                 }
                 catch (Exception excp)
                 {
-                    return new List<string>();
+                    return new List<short>();
                 }
             }
             return results;
@@ -292,7 +306,7 @@ namespace TextToAudio
             root.SetAttribute("Depth", this.depth.ToString());
             xd.AppendChild(root);
 
-            foreach (string key in chains.Keys)
+            foreach (var key in chains.Keys)
                 root.AppendChild(chains[key].getXml(xd));
 
             return xd;
@@ -300,13 +314,13 @@ namespace TextToAudio
 
         private class Chain
         {
-            internal string text;
+            internal short val;
             internal int fullCount;
-            internal Dictionary<string, ChainProbability> nextNodes;
+            internal Dictionary<short, ChainProbability> nextNodes;
 
             internal Chain()
             {
-                nextNodes = new Dictionary<string, ChainProbability>();
+                nextNodes = new Dictionary<short, ChainProbability>();
                 fullCount = 0;
             }
 
@@ -317,23 +331,23 @@ namespace TextToAudio
                 if (c.Length == 1)
                 {
                     this.fullCount += count;
-                    if (!this.nextNodes.ContainsKey(c[0].text))
-                        this.nextNodes.Add(c[0].text, new ChainProbability(c[0], count));
+                    if (!this.nextNodes.ContainsKey(c[0].val))
+                        this.nextNodes.Add(c[0].val, new ChainProbability(c[0], count));
                     else
-                        this.nextNodes[c[0].text].count += count;
+                        this.nextNodes[c[0].val].count += count;
                     return;
                 }
 
-                ChainProbability nextChain = nextNodes[c[0].text];
+                ChainProbability nextChain = nextNodes[c[0].val];
                 for (int i = 1; i < c.Length - 1; i++)
-                    nextChain = nextChain.getNextNode(c[i].text);
+                    nextChain = nextChain.getNextNode(c[i].val);
                 nextChain.addWord(c[c.Length - 1], count);
             }
 
             internal Chain getNextWord()
             {
                 int currentCount = RandomHandler.random.Next(fullCount) + 1;
-                foreach (string key in nextNodes.Keys)
+                foreach (var key in nextNodes.Keys)
                 {
                     currentCount -= nextNodes[key].count;
                     if (currentCount <= 0)
@@ -342,14 +356,14 @@ namespace TextToAudio
                 return null;
             }
 
-            internal Chain getNextWord(string[] words)
+            internal Chain getNextWord(short[] words)
             {
                 ChainProbability currentChain = nextNodes[words[0]];
                 for (int i = 1; i < words.Length; i++)
                     currentChain = currentChain.getNextNode(words[i]);
 
                 int currentCount = RandomHandler.random.Next(currentChain.count) + 1;
-                foreach (string key in currentChain.nextNodes.Keys)
+                foreach (var key in currentChain.nextNodes.Keys)
                 {
                     currentCount -= currentChain.nextNodes[key].count;
                     if (currentCount <= 0)
@@ -358,13 +372,13 @@ namespace TextToAudio
                 return null;
             }
 
-            internal List<ChainProbability> getPossibleNextWords(string[] words)
+            internal List<ChainProbability> getPossibleNextWords(short[] words)
             {
                 List<ChainProbability> results = new List<ChainProbability>();
 
                 if (words.Length == 0)
                 {
-                    foreach (string key in nextNodes.Keys)
+                    foreach (var key in nextNodes.Keys)
                         results.Add(nextNodes[key]);
                     return results;
                 }
@@ -373,7 +387,7 @@ namespace TextToAudio
                 for (int i = 1; i < words.Length; i++)
                     currentChain = currentChain.getNextNode(words[i]);
 
-                foreach (string key in currentChain.nextNodes.Keys)
+                foreach (var key in currentChain.nextNodes.Keys)
                     results.Add(currentChain.nextNodes[key]);
 
                 return results;
@@ -382,9 +396,9 @@ namespace TextToAudio
             internal XmlElement getXml(XmlDocument xd)
             {
                 XmlElement e = xd.CreateElement("Chain");
-                e.SetAttribute("Text", this.text);
+                e.SetAttribute("Text", this.val.ToString());
 
-                foreach (string key in nextNodes.Keys)
+                foreach (var key in nextNodes.Keys)
                     e.AppendChild(nextNodes[key].getXML(xd));
 
                 return e;
@@ -395,25 +409,25 @@ namespace TextToAudio
         {
             internal Chain chain;
             internal int count;
-            internal Dictionary<string, ChainProbability> nextNodes;
+            internal Dictionary<short, ChainProbability> nextNodes;
 
             internal ChainProbability(Chain c, int co)
             {
                 chain = c;
                 count = co;
-                nextNodes = new Dictionary<string, ChainProbability>();
+                nextNodes = new Dictionary<short, ChainProbability>();
             }
 
             internal void addWord(Chain c, int count = 1)
             {
-                string word = c.text;
+                var word = c.val;
                 if (this.nextNodes.ContainsKey(word))
                     this.nextNodes[word].count += count;
                 else
                     this.nextNodes.Add(word, new ChainProbability(c, count));
             }
 
-            internal ChainProbability getNextNode(string prev)
+            internal ChainProbability getNextNode(short prev)
             {
                 return nextNodes[prev];
             }
@@ -421,11 +435,11 @@ namespace TextToAudio
             internal XmlElement getXML(XmlDocument xd)
             {
                 XmlElement e = xd.CreateElement("Chain");
-                e.SetAttribute("Text", chain.text);
+                e.SetAttribute("Text", chain.val.ToString());
                 e.SetAttribute("Count", count.ToString());
 
                 XmlElement c;
-                foreach (string key in nextNodes.Keys)
+                foreach (var key in nextNodes.Keys)
                 {
                     c = nextNodes[key].getXML(xd);
                     e.AppendChild(c);
@@ -435,6 +449,21 @@ namespace TextToAudio
             }
         }
     }
+
+    public class ArrayBuilder<T>
+    {
+        readonly List<T> _innerList = new List<T>();
+        public T[] ToArray()
+        {
+            return _innerList.ToArray();
+        }
+
+        public void Append(T item)
+        {
+            _innerList.Add(item);
+        }
+    }
+
     public static class RandomHandler
     {
         //Handles the global random object
