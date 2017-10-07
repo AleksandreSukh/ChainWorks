@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using CSCore;
 using CSCore.Codecs;
+using CSCore.Codecs.WAV;
+using CSCore.DSP;
 using SoundDataUtils;
 
 namespace Sample_AudioToText
@@ -14,7 +17,7 @@ namespace Sample_AudioToText
         {
             var fileName = DateTime.Now.ToString("yyMMddHHMMss") + ".wav";
             var txtFile = fileName + ".txt";
-            var outputFile = fileName + ".random.mp3";
+            //var outputFile = fileName + ".random.mp3";
             var audioLength = TimeSpan.FromSeconds(10);
 
             //NOTE! commented out values are better quality configurations but it generates audio which is 10 times larger in size
@@ -45,10 +48,27 @@ namespace Sample_AudioToText
             File.WriteAllText(txtFile, tstring, textEncoding);
             var allBase64s = File.ReadAllText(txtFile, textEncoding);
 
-            AudioToText.ToAudioAgain(allBase64s, outputFile, wav);
 
-            Player.Play(outputFile);
+
+            Player.Play(AudioToText.ToAudioAgain(allBase64s, wav));
 
         }
+
+    }
+    public class AudioConverter
+    {
+        public static void Convert(string inputPath, string outDir, WaveFormat targetFormat)
+        {
+            IWaveSource source;
+            source = CodecFactory.Instance.GetCodec(inputPath);
+            var target = new DmoResampler(source, targetFormat);
+
+            var writer = new WaveWriter(Path.Combine(outDir, Path.GetFileName(inputPath)), target.WaveFormat);
+            byte[] buffer = new byte[target.WaveFormat.BytesPerSecond / 2];
+            int read;
+            while ((read = target.Read(buffer, 0, buffer.Length)) > 0)
+                writer.Write(buffer, 0, read);
+        }
+
     }
 }

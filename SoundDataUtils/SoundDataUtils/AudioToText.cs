@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CSCore;
+using CSCore.Codecs;
+using CSCore.Codecs.MP3;
+using CSCore.Codecs.WAV;
 using CSCore.MediaFoundation;
 
 namespace SoundDataUtils
@@ -10,13 +14,17 @@ namespace SoundDataUtils
     {
         public static IEnumerable<byte[]> GetByteChunks(this string base64String, char separator = ' ')
         {
-
             var samples64 = base64String.Split(separator);
+            return GetByteChunks(samples64);
+            //foreach (var bytese in GetByteChunks(samples64)) yield return bytese;
+        }
+
+        private static IEnumerable<byte[]> GetByteChunks(string[] samples64)
+        {
             foreach (var element in samples64.Select(s => Convert.FromBase64String(s)))
             {
                 yield return element;
             }
-
         }
 
         public static string Tob64String(this IWaveSource source, WaveFormat format)
@@ -69,7 +77,6 @@ namespace SoundDataUtils
         }
         public static void ToAudioAgain(string base64Chunks, string outputFile, WaveFormat wav)
         {
-
             using (var encoder = MediaFoundationEncoder.CreateMP3Encoder(wav, outputFile))
             {
                 foreach (var element in base64Chunks.GetByteChunks())
@@ -78,5 +85,71 @@ namespace SoundDataUtils
                 }
             }
         }
+
+        public static IWaveSource ToAudioAgain(this string base64Chunks, WaveFormat format)
+        {
+            return new WaveFileReaderRaw(new MemoryStream(GetByteChunks(base64Chunks)
+                .SelectMany(b => b).ToArray()), format);
+        }
+
+        public static IWaveSource ToAudioAgain(this string[] base64Chunks, WaveFormat format)
+        {
+            return new WaveFileReaderRaw(new MemoryStream(GetByteChunks(base64Chunks)
+                .SelectMany(b => b).ToArray()), format);
+
+            //var bytes = GetByteChunks(base64Chunks);
+            //var ms = new MemoryStream();
+            //{
+            //    var waveWriter = new WaveWriter(ms, format);
+            //    {
+            //        foreach (var sample in bytes)
+            //        {
+            //            waveWriter.Write(sample, 0, sample.Length);
+            //        }
+            //    }
+
+            //    return new WaveFileReaderRaw(ms, format);
+            //    //			ms.Position = 0;
+            //    //			return new WaveFileReader(ms);
+            //    //return CodecFactory.Instance.GetCodec(ms, "wav");
+            //}
+
+        }
+        //public static IWaveSource ToAudioAgain(this string base64Chunks, WaveFormat format)
+        //{
+        //    //using (
+        //        var ms = new MemoryStream()
+        //    ;
+        //        //)
+        //    {
+        //        //using (
+        //        var encoder = MediaFoundationEncoder.CreateMP3Encoder(format, ms);
+        //        {
+        //            foreach (var element in base64Chunks.GetByteChunks())
+        //            {
+        //                encoder.Write(element, 0, element.Length);
+        //            }
+        //        }
+        //        ms.Position = 0;
+        //        return new DmoMp3Decoder(ms);
+
+
+        //    }
+        //    //var bytes = GetByteChunks(base64Chunks);
+        //    //var ms = new MemoryStream();
+        //    //{
+        //    //    var waveWriter = new WaveWriter(ms, format);
+        //    //    {
+        //    //        foreach (var sample in bytes)
+        //    //        {
+        //    //            waveWriter.Write(sample, 0, sample.Length);
+        //    //        }
+        //    //    }
+        //    //    ms.Position = 0;
+        //    //    return new WaveFileReader(ms);
+        //    //    //return CodecFactory.Instance.GetCodec(ms, "wav");
+        //    //}
+
+        //}
     }
 }

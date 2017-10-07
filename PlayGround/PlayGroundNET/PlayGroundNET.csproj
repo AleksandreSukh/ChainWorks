@@ -31,9 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CSCore, Version=1.2.1.1, Culture=neutral, PublicKeyToken=5a08f2b6f4415dea">
-      <HintPath>..\..\SoundDataUtils\packages\CSCore.1.2.1.1\lib\net35-client\CSCore.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -59,6 +56,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\cscore\CSCore\CSCore.csproj">
+      <Project>{c3dccfe3-dd3f-4eee-849b-33e355b1e064}</Project>
+      <Name>CSCore</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\SoundDataUtils\SoundDataUtils\SoundDataUtils.csproj">
       <Project>{56E96119-7B12-4E47-AA21-19A27ED6489B}</Project>
       <Name>SoundDataUtils</Name>

@@ -54,22 +54,7 @@ namespace PlayGroundNET
             }
         }
     }
-    public class AudioConverter
-    {
-        public static void Convert(string inputPath, string outDir, WaveFormat targetFormat)
-        {
-            IWaveSource source;
-            source = CodecFactory.Instance.GetCodec(inputPath);
-            var target = new DmoResampler(source, targetFormat);
-
-            var writer = new WaveWriter(Path.Combine(outDir, Path.GetFileName(inputPath)), target.WaveFormat);
-            byte[] buffer = new byte[target.WaveFormat.BytesPerSecond / 2];
-            int read;
-            while ((read = target.Read(buffer, 0, buffer.Length)) > 0)
-                writer.Write(buffer, 0, read);
-        }
-
-    }
+    
     class Program
     {
         static void Main(string[] args)
