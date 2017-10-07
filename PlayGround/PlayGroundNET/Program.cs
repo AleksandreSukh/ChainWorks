@@ -19,42 +19,8 @@ using Utils;
 
 namespace PlayGroundNET
 {
-    public static class Player
-    {
-        public static void Play(string filePath)
-        {
-            using (var enumerator = new MMDeviceEnumerator())
-            using (var device = enumerator.EnumAudioEndpoints(DataFlow.Render, DeviceState.Active).Last())
-            using (var source =
-                CodecFactory.Instance.GetCodec(filePath)
-                    .ToSampleSource()
-                    .ToMono()
-                    .ToWaveSource())
 
-            using (
-                var soundOut = new WasapiOut() { Latency = 100, Device = device })
-            {
-                soundOut.Initialize(source);
-                soundOut.Play();
-                Thread.Sleep(source.GetLength());
-                soundOut.Stop();
-            }
-        }
-        public static void Play(IWaveSource source)
-        {
-            using (var enumerator = new MMDeviceEnumerator())
-            using (var device = enumerator.EnumAudioEndpoints(DataFlow.Render, DeviceState.Active).Last())
-            using (
-                var soundOut = new WasapiOut() { Latency = 100, Device = device })
-            {
-                soundOut.Initialize(source);
-                soundOut.Play();
-                Thread.Sleep(source.GetLength());
-                soundOut.Stop();
-            }
-        }
-    }
-    
+
     class Program
     {
         static void Main(string[] args)
@@ -66,13 +32,41 @@ namespace PlayGroundNET
 
         static void ReadAndPlay(string[] args)
         {
+            var initialFilesDir = @"G:\Data\Initial";
+            var convertedFilesDir = @"G:\Data\Converted".CreateDirIfNotExists();
+            var toTextFilesDir = @"G:\Data\ToTexts2".CreateDirIfNotExists();
 
+            int sampleRate = 8000;// 44100;
+            int bitsPerSample = 16;// 16;
+            int channels = 1;// 2;
+
+            var wav = new WaveFormat(sampleRate, bitsPerSample, channels);
+            var wavGood = new WaveFormat(44100, 16, 2);
+            toTextFilesDir.EnsureDirEmpty();
+            //Parallel.ForEach(Directory.EnumerateFiles(initialFilesDir), fileName =>
+            foreach (var fileName in Directory.EnumerateFiles(initialFilesDir))
+            {
+                var rdr = new MediaFoundationDecoder(fileName);// new WaveFileReader(fileName);
+                //Player.Play(rdr);
+                var chunk = new DmoResampler(rdr, wav).ToShortArray(wav);
+                Player.Play(chunk.ToAudioAgain(wav));
+                //{
+                //    var outPath = Path.Combine(toTextFilesDir,
+                //        Path.GetFileNameWithoutExtension(fileName) + $"_chunk_{0}.txt");
+                //    using (var fs = new StreamWriter(File.OpenWrite(outPath)))
+                //        foreach (var shortval in chunk)
+                //        {
+                //            fs.Write(shortval + " ");
+                //        }
+                //}
+            }
+            //);
         }
         static void Convert(string[] args)
         {
             var initialFilesDir = @"G:\Data\Initial";
             var convertedFilesDir = @"G:\Data\Converted".CreateDirIfNotExists();
-            var toTextFilesDir = @"G:\Data\ToTexts".CreateDirIfNotExists();
+            var toTextFilesDir = @"G:\Data\ToTexts2".CreateDirIfNotExists();
 
             int sampleRate = 8000;// 44100;
             int bitsPerSample = 16;// 16;

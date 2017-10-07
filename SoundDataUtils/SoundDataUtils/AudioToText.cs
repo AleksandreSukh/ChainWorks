@@ -26,6 +26,13 @@ namespace SoundDataUtils
                 yield return element;
             }
         }
+        private static IEnumerable<byte[]> GetByteChunks(short[] samples64)
+        {
+            foreach (var element in samples64.Select(s => BitConverter.GetBytes(s)))
+            {
+                yield return element;
+            }
+        }
 
         public static string Tob64String(this IWaveSource source, WaveFormat format)
         {
@@ -75,6 +82,57 @@ namespace SoundDataUtils
             yield return listOfChunks;
 
         }
+        public static short[] ToShortArray(this IWaveSource source, WaveFormat format)
+        {
+            var bytesPerSample = format.BytesPerSecond / format.SampleRate;
+
+            var chunkLength = source.Length / bytesPerSample;
+            var chunk = new short[chunkLength];
+
+            byte[] buffer = new byte[bytesPerSample];
+            int read;
+            int ctr = 0;
+
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                chunk[ctr] = BitConverter.ToInt16(buffer, 0);
+                ctr++;
+            }
+            return chunk;
+
+        }
+        public static IEnumerable<short[]> ToShorts(this IWaveSource source, WaveFormat format, TimeSpan timeChunks)
+        {
+            int ctr = 0;
+
+            var chunkLength = format.SampleRate * timeChunks.TotalSeconds;
+            var chunk = new short[(int)chunkLength];
+
+            byte[] buffer = new byte[format.BytesPerSecond / format.SampleRate];
+            int read;
+
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+
+                ctr++;
+                if (ctr == chunkLength)
+                {
+                    yield return chunk;
+                    ctr = 0;
+                    chunk = new short[(int)chunkLength];
+                }
+                else
+                {
+                    chunk[ctr] = BitConverter.ToInt16(buffer, 0);
+                }
+                if (ctr % 1000 == 0)
+                {
+                    Console.WriteLine(Math.Round((source.Position / (double)source.Length) * 100));
+                    ctr = 1;
+                }
+            }
+
+        }
         public static void ToAudioAgain(string base64Chunks, string outputFile, WaveFormat wav)
         {
             using (var encoder = MediaFoundationEncoder.CreateMP3Encoder(wav, outputFile))
@@ -89,6 +147,12 @@ namespace SoundDataUtils
         public static IWaveSource ToAudioAgain(this string base64Chunks, WaveFormat format)
         {
             return new WaveFileReaderRaw(new MemoryStream(GetByteChunks(base64Chunks)
+                .SelectMany(b => b).ToArray()), format);
+        }
+
+        public static IWaveSource ToAudioAgain(this short[] shortChunks, WaveFormat format)
+        {
+            return new WaveFileReaderRaw(new MemoryStream(GetByteChunks(shortChunks)
                 .SelectMany(b => b).ToArray()), format);
         }
 
