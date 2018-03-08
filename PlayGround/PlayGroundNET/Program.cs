@@ -16,6 +16,7 @@ using CSCore.SoundOut;
 using PlayGround;
 using SoundDataUtils;
 using Utils;
+using Utils.TextLoggerNet;
 
 namespace PlayGroundNET
 {
@@ -45,13 +46,36 @@ namespace PlayGroundNET
             toTextFilesDir.EnsureDirEmpty();
             //Parallel.ForEach(Directory.EnumerateFiles(initialFilesDir), fileName =>
             var chain = new SampleDeepChain(3);
-            foreach (var fileName in Directory.EnumerateFiles(initialFilesDir))
+            foreach (var fileName in Directory.EnumerateFiles(initialFilesDir, "*.mp3"))
             {
+                Console.WriteLine($"{DateTime.Now}Decoding:{fileName}");
+
                 var rdr = new MediaFoundationDecoder(fileName);// new WaveFileReader(fileName);
                 //Player.Play(rdr);
-                var chunk = new DmoResampler(rdr, wav).ToShortArray(wav);
-                chain.feed(chunk);
+                var timeChunk = TimeSpan.FromSeconds(10);
+                var chunks = new DmoResampler(rdr, wav).ToShorts(wav, timeChunk);
+                foreach (var chunk in chunks)
+                {
+                    Console.WriteLine($"{DateTime.Now}Feeding:{fileName} chunk: {timeChunk.ToVerboseStringHMS()}");
+                    try
+                    {
+                        chain.feed(chunk);
+                    }
+                    catch (OutOfMemoryException e)
+                    {
+                        chain.save(fileName + $"{chunks.Count()}.xml");
+                        chain = new SampleDeepChain(3);
+                    }
 
+                }
+
+
+                Console.WriteLine($"{DateTime.Now}Fed:{fileName}, Saving");
+                chain.save(fileName + $"_Final.xml");
+
+                Console.WriteLine($"{DateTime.Now}Saved:{fileName}");
+
+                continue;
                 List<short[]> randomSounds = new List<short[]>();
                 for (int i = 0; i < 10000; i++)
                 {

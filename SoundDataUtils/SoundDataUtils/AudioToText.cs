@@ -104,11 +104,12 @@ namespace SoundDataUtils
         public static IEnumerable<short[]> ToShorts(this IWaveSource source, WaveFormat format, TimeSpan timeChunks)
         {
             int ctr = 0;
+            var bytesPerSample = format.BytesPerSecond / format.SampleRate;
 
-            var chunkLength = format.SampleRate * timeChunks.TotalSeconds;
+            var chunkLength = (int)(format.SampleRate * timeChunks.TotalSeconds);
             var chunk = new short[(int)chunkLength];
 
-            byte[] buffer = new byte[format.BytesPerSecond / format.SampleRate];
+            byte[] buffer = new byte[bytesPerSample];
             int read;
 
             while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
@@ -125,11 +126,12 @@ namespace SoundDataUtils
                 {
                     chunk[ctr] = BitConverter.ToInt16(buffer, 0);
                 }
-                if (ctr % 1000 == 0)
+#if DEBUG
+                if ((ctr*bytesPerSample) % (source.Length / 100) == 0)
                 {
                     Console.WriteLine(Math.Round((source.Position / (double)source.Length) * 100));
-                    ctr = 1;
                 }
+#endif
             }
 
         }
