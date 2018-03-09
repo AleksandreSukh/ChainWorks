@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.3
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlayGround", "PlayGround\PlayGround.csproj", "{10C41F56-B234-481B-9890-CF22D27D3FE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlayGround", "PlayGround\PlayGround.csproj", "{10C41F56-B234-481B-9890-CF22D27D3FE0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextAnalyser", "..\TextAnalyser\TextAnalyser\TextAnalyser.csproj", "{7900035A-6B9F-4B07-84E0-71B5134406BD}"
 EndProject
@@ -76,6 +76,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EndpointAudioMeterSample", "..\cscore\Samples\EndpointAudioMeterSample\EndpointAudioMeterSample.csproj", "{2EDF3192-9107-4B7A-914A-EA25AFEB9F85}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextToAudio", "TextToAudio\TextToAudio.csproj", "{707F2192-6BAE-4CCA-B95A-F65D263F86C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustCrawler", "..\..\JustCrawler\JustCrawler\JustCrawler.csproj", "{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -490,6 +492,22 @@ Global
 		{707F2192-6BAE-4CCA-B95A-F65D263F86C4}.Release|Win32.Build.0 = Release|Any CPU
 		{707F2192-6BAE-4CCA-B95A-F65D263F86C4}.Release|x86.ActiveCfg = Release|Any CPU
 		{707F2192-6BAE-4CCA-B95A-F65D263F86C4}.Release|x86.Build.0 = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|Win32.Build.0 = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Debug|x86.Build.0 = Debug|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Win32.ActiveCfg = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|Win32.Build.0 = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|x86.ActiveCfg = Release|Any CPU
+		{C8C6F3EF-21BC-4210-8DC4-93DFB0ECD6C0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
